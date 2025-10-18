@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Lab5 Client</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>Patient DB</h1>
+
+    <button id="insertBtn">Insert Default Patients</button>
+    <div>
+      <textarea
+        id="sqlQuery"
+        placeholder="Type your SQL query here..."
+      ></textarea
+      ><br />
+      <button id="sendQuery">Send Query</button>
+    </div>
+    <h3>Server Response:</h3>
+    <pre id="output"></pre>
+
+    <script src="client.js"></script>
+  </body>
+</html>
