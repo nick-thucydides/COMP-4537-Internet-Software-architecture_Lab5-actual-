@@ -1,4 +1,6 @@
-const SERVER_URL = "http://localhost:5000"; 
+const messages = require("./lang/en/en");
+
+const SERVER_URL = "http://localhost:5000";
 
 document.getElementById("insertBtn").onclick = async () => {
   const query = `INSERT INTO patient (name, dateOfBirth) VALUES
@@ -16,29 +18,25 @@ document.getElementById("insertBtn").onclick = async () => {
   document.getElementById("output").textContent = JSON.stringify(data, null, 2);
 };
 
-document.getElementById("sendQuery").onclick = async () => 
-{
-  const sql = document.getElementById("sqlQuery").value.trim();
-  if (!sql) return alert("Enter a SQL query");
+document.getElementById("sendQuery").onclick = async () => {
+  const sql = document.getElementById("sqlsQuery").value.trim();
+  if (!sql) return alert(messages.NO_QUERY);
 
   let res;
-  if (sql.toLowerCase().startsWith("select")) 
-  {
+  if (sql.toLowerCase().startsWith("select")) {
     res = await fetch(`${SERVER_URL}?sql=${encodeURIComponent(sql)}`);
-  } 
-  else if (sql.toLowerCase().startsWith("insert"))
-  {
+  }
+  else if (sql.toLowerCase().startsWith("insert")) {
     res = await fetch(SERVER_URL,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: sql })
-    });
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: sql })
+      });
 
-  } 
-  else
- {
-    return alert("Only SELECT or INSERT allowed");
+  }
+  else {
+    return alert(messages.WRONG_OPERATION);
   }
   const data = await res.json();
   document.getElementById("output").textContent = JSON.stringify(data, null, 2);
