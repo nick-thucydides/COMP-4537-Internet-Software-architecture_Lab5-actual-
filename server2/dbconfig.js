@@ -6,7 +6,7 @@ const connectionString = process.env.DATABASE_URL;
 export const DB_CONFIG = connectionString
   ? {
     connectionString: connectionString,
-    ssl: 'require'
+    ssl: { rejectUnauthorized: false }
   }
   : {
     host: process.env.DB_HOST || 'localhost',
@@ -14,5 +14,5 @@ export const DB_CONFIG = connectionString
     user: process.env.DB_USER || 'lab5user',
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    ssl: 'require'
+    ssl: { rejectUnauthorized: false }
   };
