@@ -1,5 +1,3 @@
-const messages = require("./lang/en/en");
-
 const SERVER_URL = "http://localhost:5000";
 
 document.getElementById("insertBtn").onclick = async () => {

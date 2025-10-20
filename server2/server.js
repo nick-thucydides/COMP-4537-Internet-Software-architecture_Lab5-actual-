@@ -1,116 +1,185 @@
-
 import http from "http";
 import url from "url";
 import mysql from "mysql2/promise";
 import { DB_CONFIG } from "./dbconfig.js";
 
+import { messages } from './lang/en/en.js';
+
 const PORT = 5000;
 
+class DatabaseManager {
+  constructor() {
+    this.pool = null;
+  }
 
-async function initDB() {
-  const conn = await mysql.createConnection({
-    host: DB_CONFIG.host,
-    user: DB_CONFIG.user,
-    password: DB_CONFIG.password
-  });
+  async init() {
+    try {
+      // temporary connection
+      const tempConn = await mysql.createConnection({
+        host: DB_CONFIG.host,
+        user: DB_CONFIG.user,
+        password: DB_CONFIG.password
+      });
 
-  await conn.query(`CREATE DATABASE IF NOT EXISTS ${DB_CONFIG.database}`);
-  await conn.end();
+      // TODO: replace hardcoded string
+      await tempConn.query(`CREATE DATABASE IF NOT EXISTS ${DB_CONFIG.database}`);
+      await tempConn.end();
 
-  const db = await mysql.createConnection(DB_CONFIG);
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS patient (
-      patientid INT(11) AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(100),
-      dateOfBirth DATETIME
-    ) ENGINE=InnoDB;
-  `);
-  await db.end();
+      // create connection pool
+      this.pool = mysql.createPool(DB_CONFIG);
 
-  console.log("Database & table ready");
+      // create table
+      const conn = await this.pool.getConnection();
+
+      await conn.query(`
+      CREATE TABLE IF NOT EXISTS patient (
+        patientid INT(11) AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100),
+        dateOfBirth DATETIME
+      ) ENGINE=InnoDB;
+    `);
+      conn.release();
+
+      // TODO: replace both HC strings
+      console.log("Database & table ready");
+    } catch (err) {
+      console.log(err, "Error message DB DNE");
+    }
+  }
+
+  isQueryAllowed(query) {
+    const q = query.trim().toUpperCase();
+
+    // Block malicious operations
+    // TODO
+
+    // only SELECT or INSERT
+    if (!q.startsWith("SELECT") && !q.startsWith("INSERT")) {
+      return false;
+    }
+    return true;
+  }
+
+  async executeQuery(query) {
+    const conn = await this.pool.getConnection();
+    const [result] = await conn.query(query);
+    conn.release();
+    return result;
+  }
 }
 
+class ResponseHandler {
+  static sendJSON(res, status, obj) {
+    res.writeHead(status, {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type"
+    });
+    res.end(JSON.stringify(obj));
+  }
 
-function sendJSON(res, status, obj) {
-  res.writeHead(status, {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*"
-  });
-  res.end(JSON.stringify(obj));
-}
-
-async function handleRequest(req, res) {
-  const parsed = url.parse(req.url, true);
-  const method = req.method;
-
-  if (method === "OPTIONS") {
+  static sendOptions(res) {
     res.writeHead(204, {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type"
     });
-    return res.end();
-  }
-
-
-    try {
-    const db = await mysql.createConnection(DB_CONFIG);
-
-    if (method === "POST") {
-      let body = "";
-      req.on("data", chunk => (body += chunk));
-
-      req.on("end", async () => {
-        try {
-          const data = JSON.parse(body);
-          const query = data.query;
-
-          if (/drop|delete|update/i.test(query))
-            return sendJSON(res, 403, { error: "Forbidden SQL" });
-
-          const [result] = await db.query(query);
-          sendJSON(res, 200, { message: "Query executed", result });
-
-        } catch (err) {
-          console.error("❌ POST error:", err.message);
-          sendJSON(res, 400, { error: "Invalid or failed SQL query", details: err.message });
-        } finally {
-          await db.end();
-        }
-      });
-    }
-
-    else if (method === "GET") {
-      try {
-        const q = parsed.query.sql;
-        if (!q) return sendJSON(res, 400, { error: "Missing sql query" });
-
-        if (/drop|delete|update/i.test(q))
-          return sendJSON(res, 403, { error: "Forbidden SQL" });
-
-        const [rows] = await db.query(q);
-        sendJSON(res, 200, rows);
-
-      } catch (err) {
-        console.error("❌ GET error:", err.message);
-        sendJSON(res, 400, { error: "Invalid or failed SQL query", details: err.message });
-      } finally {
-        await db.end();
-      }
-    }
-
-    else {
-      sendJSON(res, 405, { error: "Method not allowed" });
-    }
-
-  } catch (err) {
-    console.error("❌ Fatal server error:", err.message);
-    sendJSON(res, 500, { error: "Internal server error", details: err.message });
+    res.end();
   }
 }
 
-initDB().then(() => {
-  http.createServer(handleRequest).listen(PORT, () => {
-    console.log(`🚀 Server2 running on http://localhost:${PORT}`);
+class RequestHandler {
+  constructor(dbManager) {
+    this.db = dbManager;
+  }
+
+  async handleRequest(req, res) {
+    const parsed = url.parse(req.url, true);
+    const method = req.method;
+
+    if (method === "OPTIONS") {
+      ResponseHandler.sendOptions(res);
+      return;
+    }
+
+    try {
+      if (method === "POST") {
+        await this.handlePost(req, res);
+      } else if (method === "GET") {
+        await this.handleGet(parsed, res);
+      } else {
+        // TODO
+        ResponseHandler.sendJSON(res, 405, { error: "Method not allowed" });
+      }
+    } catch (err) {
+      // TODO
+      console.error("Fatal server error:", err.message);
+      ResponseHandler.sendJSON(res, 500, { error: "Internal server error", details: err.message });
+    }
+  }
+
+  async handlePost(req, res) {
+    let body = "";
+    req.on("data", chunk => (body += chunk.toString()));
+
+    req.on("end", async () => {
+      try {
+        const data = JSON.parse(body);
+        const query = data.query;
+
+        // TODO: string
+        if (!query) {
+          return ResponseHandler.sendJSON(res, 400, { error: "No query provided" });
+        }
+
+        // TODO: string
+        if (!this.db.isQueryAllowed(query)) {
+          return ResponseHandler.sendJSON(res, 403, { error: "Operation not allowed" });
+        }
+
+        const result = await this.db.executeQuery(query);
+
+        // TODO: stromg
+        ResponseHandler.sendJSON(res, 200, { message: "Query executed successfully", result });
+
+        // TODO: strings
+      } catch (err) {
+        console.error(" POST error:", err.message);
+        ResponseHandler.sendJSON(res, 400, { error: "Invalid or failed SQL query", details: err.message });
+      }
+    });
+  }
+
+  async handleGet(parsed, res) {
+    try {
+      const q = parsed.query.sql;
+      // TODO
+      if (!q) return ResponseHandler.sendJSON(res, 400, { error: "Missing sql query" });
+
+      //TODO
+      if (!this.db.isQueryAllowed(q)) {
+        return ResponseHandler.sendJSON(res, 403, { error: "Operation not allowed. Only SELECT and INSERT allowed." });
+      }
+
+      const rows = await this.db.executeQuery(q);
+      ResponseHandler.sendJSON(res, 200, { success: true, message: "Query executed successfully", data: rows });
+
+    } catch (err) {
+      // TODO
+      console.error("GET error:", err.message);
+      ResponseHandler.sendJSON(res, 400, { error: "Invalid or failed SQL query", details: err.message });
+    }
+  }
+}
+
+const dbManager = new DatabaseManager();
+const requestHandler = new RequestHandler(dbManager);
+
+dbManager.init().then(() => {
+  http.createServer((req, res) => requestHandler.handleRequest(req, res)).listen(PORT, () => {
+    console.log(`Server2 running on http://localhost:${PORT}`);
+    console.log(`GET endpoint: http://localhost:${PORT}/?query=SELECT%20*%20FROM%20patient`);
+    console.log(`POST endpoint: http://localhost:${PORT}/`);
   });
 });
