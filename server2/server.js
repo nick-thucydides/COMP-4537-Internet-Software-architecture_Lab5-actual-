@@ -21,10 +21,10 @@ class DatabaseManager {
   async init() {
     try {
       // create connection pool
-      this.pool = mysql.createPool(DB_CONFIG);
+      this.pool = new pg.Pool(DB_CONFIG);
 
       // create table
-      const conn = await this.pool.getConnection();
+      const conn = await this.pool.connect();
 
       await conn.query(`
         CREATE TABLE IF NOT EXISTS patient (
@@ -57,10 +57,10 @@ class DatabaseManager {
   }
 
   async executeQuery(query) {
-    const conn = await this.pool.getConnection();
-    const [result] = await conn.query(query);
+    const conn = await this.pool.connect();
+    const result = await conn.query(query);
     conn.release();
-    return result;
+    return result.rows;
   }
 }
 
