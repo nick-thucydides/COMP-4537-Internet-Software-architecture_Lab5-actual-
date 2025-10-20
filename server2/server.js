@@ -61,7 +61,7 @@ class ResponseHandler {
   static sendJSON(res, status, obj) {
     res.writeHead(status, {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "https://4537-lab5-m13.netlify.app/",
+      "Access-Control-Allow-Origin": "https://4537-lab5-m13.netlify.app",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type"
     });
@@ -70,7 +70,7 @@ class ResponseHandler {
 
   static sendOptions(res) {
     res.writeHead(204, {
-      "Access-Control-Allow-Origin": "https://4537-lab5-m13.netlify.app/",
+      "Access-Control-Allow-Origin": "https://4537-lab5-m13.netlify.app",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type"
     });
