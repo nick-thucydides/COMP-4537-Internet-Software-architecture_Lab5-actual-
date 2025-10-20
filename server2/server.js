@@ -9,9 +9,6 @@ import { messages } from './lang/en/en.js';
 
 const PORT = 5000;
 
-console.log("Server script loaded");
-console.log("DB_CONFIG:", process.env.DB_HOST, process.env.DB_USER);
-
 class DatabaseManager {
   constructor() {
     this.pool = null;
@@ -34,19 +31,16 @@ class DatabaseManager {
       `);
       conn.release();
 
-      // TODO: replace both HC strings
-      console.log("Database & table ready");
+
+      console.log(messages.READY);
     } catch (err) {
-      console.error("FATAL: Database init failed:", err.message);
+      console.error(messages.FATAL_DB_ERROR, err.message);
       process.exit(1);
     }
   }
 
   isQueryAllowed(query) {
     const q = query.trim().toUpperCase();
-
-    // Block malicious operations
-    // TODO
 
     // only SELECT or INSERT
     if (!q.startsWith("SELECT") && !q.startsWith("INSERT")) {
@@ -67,7 +61,7 @@ class ResponseHandler {
   static sendJSON(res, status, obj) {
     res.writeHead(status, {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": "https://4537-lab5-m13.netlify.app/",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type"
     });
@@ -76,7 +70,7 @@ class ResponseHandler {
 
   static sendOptions(res) {
     res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": "https://4537-lab5-m13.netlify.app/",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type"
     });
@@ -104,13 +98,10 @@ class RequestHandler {
       } else if (method === "GET") {
         await this.handleGet(parsed, res);
       } else {
-        // TODO
-        ResponseHandler.sendJSON(res, 405, { error: "Method not allowed" });
+        ResponseHandler.sendJSON(res, 405, { error: messages.WRONG_METHOD });
       }
     } catch (err) {
-      // TODO
-      console.error("Fatal server error:", err.message);
-      ResponseHandler.sendJSON(res, 500, { error: "Internal server error", details: err.message });
+      ResponseHandler.sendJSON(res, 500, { error: messages.SERVER_ERROR, details: err.message });
     }
   }
 
@@ -123,25 +114,24 @@ class RequestHandler {
         const data = JSON.parse(body);
         const query = data.query;
 
-        // TODO: string
         if (!query) {
-          return ResponseHandler.sendJSON(res, 400, { error: "No query provided" });
+          return ResponseHandler.sendJSON(res, 400, { error: messages.NO_QUERY });
         }
 
-        // TODO: string
+
         if (!this.db.isQueryAllowed(query)) {
-          return ResponseHandler.sendJSON(res, 403, { error: "Operation not allowed" });
+          return ResponseHandler.sendJSON(res, 403, { error: messages.NOT_ALLOWED });
         }
 
         const result = await this.db.executeQuery(query);
 
-        // TODO: stromg
-        ResponseHandler.sendJSON(res, 200, { message: "Query executed successfully", result });
 
-        // TODO: strings
+        ResponseHandler.sendJSON(res, 200, { message: messages.SUCCESS, result });
+
+
       } catch (err) {
-        console.error(" POST error:", err.message);
-        ResponseHandler.sendJSON(res, 400, { error: "Invalid or failed SQL query", details: err.message });
+
+        ResponseHandler.sendJSON(res, 400, { error: INVALID_QUERY, details: err.message });
       }
     });
   }
@@ -149,21 +139,18 @@ class RequestHandler {
   async handleGet(parsed, res) {
     try {
       const q = parsed.query.query;
-      // TODO
-      if (!q) return ResponseHandler.sendJSON(res, 400, { error: "Missing sql query" });
 
-      //TODO
+      if (!q) return ResponseHandler.sendJSON(res, 400, { error: messages.MISSING_QUERY });
+
       if (!this.db.isQueryAllowed(q)) {
-        return ResponseHandler.sendJSON(res, 403, { error: "Operation not allowed. Only SELECT and INSERT allowed." });
+        return ResponseHandler.sendJSON(res, 403, { error: messages.NOT_ALLOWED });
       }
 
       const rows = await this.db.executeQuery(q);
-      ResponseHandler.sendJSON(res, 200, { success: true, message: "Query executed successfully", data: rows });
+      ResponseHandler.sendJSON(res, 200, { success: true, message: messages.SUCCESS, data: rows });
 
     } catch (err) {
-      // TODO
-      console.error("GET error:", err.message);
-      ResponseHandler.sendJSON(res, 400, { error: "Invalid or failed SQL query", details: err.message });
+      ResponseHandler.sendJSON(res, 400, { error: messages.INVALID_QUERY, details: err.message });
     }
   }
 }
