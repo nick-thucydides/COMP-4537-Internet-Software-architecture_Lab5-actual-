@@ -4,7 +4,7 @@ dotenv.config();
 import http from "http";
 import url from "url";
 import { DB_CONFIG } from "./dbconfig.js";
-
+import pg from 'pg';
 import { messages } from './lang/en/en.js';
 
 const PORT = 5000;
