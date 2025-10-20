@@ -1,4 +1,4 @@
-const SERVER_URL = "http://localhost:5000";
+const SERVER_URL = "https://comp-4537-lab5-m13.onrender.com/";
 
 document.getElementById("insertBtn").onclick = async () => {
   const query = `INSERT INTO patient (name, dateOfBirth) VALUES
