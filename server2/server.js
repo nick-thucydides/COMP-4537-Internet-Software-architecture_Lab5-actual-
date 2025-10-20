@@ -20,32 +20,26 @@ class DatabaseManager {
 
   async init() {
     try {
-      // temporary connection
-      const tempConn = await mysql.createConnection({
-        host: DB_CONFIG.host,
-        user: DB_CONFIG.user,
-        password: DB_CONFIG.password
-      });
-
-      await tempConn.query(`CREATE DATABASE IF NOT EXISTS ${DB_CONFIG.database}`);
-      await tempConn.end();
-
+      // create connection pool
       this.pool = mysql.createPool(DB_CONFIG);
 
+      // create table
       const conn = await this.pool.getConnection();
+
       await conn.query(`
-      CREATE TABLE IF NOT EXISTS patient (
-        patientid INT(11) AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100),
-        dateOfBirth DATETIME
-      ) ENGINE=InnoDB;
-    `);
+        CREATE TABLE IF NOT EXISTS patient (
+          patientid SERIAL PRIMARY KEY,
+          name VARCHAR(100),
+          dateOfBirth TIMESTAMP
+        );
+      `);
       conn.release();
 
+      // TODO: replace both HC strings
       console.log("Database & table ready");
     } catch (err) {
       console.error("FATAL: Database init failed:", err.message);
-      process.exit(1);  // Exit instead of silently failing
+      process.exit(1);
     }
   }
 
