@@ -3,7 +3,6 @@ dotenv.config();
 
 import http from "http";
 import url from "url";
-import mysql from "mysql2/promise";
 import { DB_CONFIG } from "./dbconfig.js";
 
 import { messages } from './lang/en/en.js';
