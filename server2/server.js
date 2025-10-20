@@ -10,6 +10,9 @@ import { messages } from './lang/en/en.js';
 
 const PORT = 5000;
 
+console.log("Server script loaded");
+console.log("DB_CONFIG:", process.env.DB_HOST, process.env.DB_USER);
+
 class DatabaseManager {
   constructor() {
     this.pool = null;
