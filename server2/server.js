@@ -156,7 +156,7 @@ class RequestHandler {
 
   async handleGet(parsed, res) {
     try {
-      const q = parsed.query.sql;
+      const q = parsed.query.query;
       // TODO
       if (!q) return ResponseHandler.sendJSON(res, 400, { error: "Missing sql query" });
 

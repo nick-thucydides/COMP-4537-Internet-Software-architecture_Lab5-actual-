@@ -17,12 +17,12 @@ document.getElementById("insertBtn").onclick = async () => {
 };
 
 document.getElementById("sendQuery").onclick = async () => {
-  const sql = document.getElementById("sqlsQuery").value.trim();
+  const sql = document.getElementById("sqlQuery").value.trim();
   if (!sql) return alert(messages.NO_QUERY);
 
   let res;
   if (sql.toLowerCase().startsWith("select")) {
-    res = await fetch(`${SERVER_URL}?sql=${encodeURIComponent(sql)}`);
+    res = await fetch(`${SERVER_URL}?query=${encodeURIComponent(sql)}`);
   }
   else if (sql.toLowerCase().startsWith("insert")) {
     res = await fetch(SERVER_URL,
