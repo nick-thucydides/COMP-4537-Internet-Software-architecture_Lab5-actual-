@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import http from "http";
 import url from "url";
 import mysql from "mysql2/promise";
