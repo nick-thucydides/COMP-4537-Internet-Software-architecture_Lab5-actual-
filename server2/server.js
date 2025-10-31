@@ -9,7 +9,25 @@ import { messages } from './lang/en/en.js';
 
 const PORT = 5000;
 
+// manage all DB operations
 class DatabaseManager {
+
+  suspiciousPatterns = [
+    /;\s*(DROP|DELETE|UPDATE|CREATE|ALTER|TRUNCATE|EXEC|EXECUTE)/i,
+    /--\s*$/,
+    /\/\*.*\*\//,
+    /;\s*$|;\s*-/,
+    /UNION\s+SELECT/i,
+    /OR\s+1\s*=\s*1/i,
+    /'\s*OR\s*'/i,
+    /SLEEP\s*\(/i,
+    /BENCHMARK\s*\(/i,
+    /CAST\s*\(/i,
+    /LOAD_FILE|INTO\s+OUTFILE/i,
+    /xp_|sp_/i,
+  ];
+
+
   constructor() {
     this.pool = null;
   }
@@ -39,15 +57,31 @@ class DatabaseManager {
     }
   }
 
+  // only SELECT or INSERT
   isQueryAllowed(query) {
     const q = query.trim().toUpperCase();
-
-    // only SELECT or INSERT
     if (!q.startsWith("SELECT") && !q.startsWith("INSERT")) {
       return false;
     }
     return true;
   }
+
+  // try to block injection attacks
+  isMalicious(query) {
+    if (!query || typeof query !== 'string') {
+      return false;
+    }
+
+    const normalized = query.trim().toUpperCase();
+
+    for (const pattern of this.suspiciousPatterns) {
+      if (pattern.test(query)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
 
   async executeQuery(query) {
     const conn = await this.pool.connect();
@@ -57,11 +91,13 @@ class DatabaseManager {
   }
 }
 
+
 class ResponseHandler {
   static sendJSON(res, status, obj) {
     res.writeHead(status, {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "https://4537-lab5-m13.netlify.app",
+      "Access-Control-Allow-Origin": "*",
+      // "Access-Control-Allow-Origin": "https://4537-lab5-m13.netlify.app",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type"
     });
@@ -70,7 +106,8 @@ class ResponseHandler {
 
   static sendOptions(res) {
     res.writeHead(204, {
-      "Access-Control-Allow-Origin": "https://4537-lab5-m13.netlify.app",
+      "Access-Control-Allow-Origin": '*',
+      // "Access-Control-Allow-Origin": "https://4537-lab5-m13.netlify.app",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type"
     });
